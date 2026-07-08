@@ -55,6 +55,7 @@ def seed_admin() -> None:
         admin = db.query(DbUsers).filter(DbUsers.email == ADMIN_EMAIL).first()
         if not admin:
             admin = DbUsers(email=ADMIN_EMAIL, password_hash=hash_password(ADMIN_PASSWORD), role=UserRole.ADMIN)
+            admin.cart = Carts()
             db.add(admin)
             db.commit()
     except SQLAlchemyError:
@@ -109,14 +110,6 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
     password_hashed = hash_password(user.password)
     new_user = DbUsers(email=email, password_hash=password_hashed)
-
-    db.add(new_user)
-    try:
-        db.commit()
-        db.refresh(new_user)
-    except SQLAlchemyError:
-        db.rollback()
-        raise
 
     new_user.cart = Carts()
     try:

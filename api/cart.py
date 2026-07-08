@@ -14,16 +14,24 @@ router = APIRouter()
 
 def get_current_cart(current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)) -> Carts:
     """Fetch the authenticated user's cart or raise a 404."""
-    cart = db.query(Carts).filter(Carts.user_id == current_user.id).first()
+    cart = current_user.cart
     if not cart:
-        raise HTTPException(status_code=404, detail="Cart not found")
+        cart = Carts(user=current_user)
+        db.add(cart)
+
+        try:
+            db.commit()
+            db.refresh(cart)
+        except SQLAlchemyError:
+            db.rollback()
+            raise
     return cart
 
 
 @router.get("/", response_model=list[CartItemResponse])
 def get_cart_items(cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)):
     """Return the current cart contents."""
-    cart_items = db.query(CartItems).filter(CartItems.cart_id == cart.id).all()
+    cart_items = cart.cart_items
 
     return [
         {
