@@ -212,7 +212,7 @@ async def login(request: Request, response: Response, form_data: OAuth2PasswordR
         key="access_token",
         value=access_token,
         httponly=True,
-        samesite="lax",
+        samesite="None",
         secure=True,
         max_age=15 * 60,
     )
@@ -220,7 +220,7 @@ async def login(request: Request, response: Response, form_data: OAuth2PasswordR
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        samesite="lax",
+        samesite="None",
         secure=True,
         max_age=7 * 24 * 60 * 60,
     )
@@ -269,7 +269,7 @@ async def refresh(request: Request, response: Response, db: Session = Depends(ge
         key="access_token",
         value=new_access_token,
         httponly=True,
-        samesite="lax",
+        samesite="None",
         secure=True,
         max_age=15 * 60,
     )
@@ -277,7 +277,7 @@ async def refresh(request: Request, response: Response, db: Session = Depends(ge
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        samesite="lax",
+        samesite="None",
         secure=True,
         max_age=7 * 24 * 60 * 60,
     )
@@ -305,8 +305,8 @@ def logout(request: Request, response: Response):
     except RedisError as exc:
         raise HTTPException(status_code=503, detail="Authentication service temporarily unavailable") from exc
 
-    response.delete_cookie("access_token", secure=True, samesite="lax")
-    response.delete_cookie("refresh_token", secure=True, samesite="lax")
+    response.delete_cookie("access_token", secure=True, samesite="None")
+    response.delete_cookie("refresh_token", secure=True, samesite="None")
     return {"message": "Logged out"}
 
 
