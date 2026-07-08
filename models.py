@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from db_model import Category, OrderStatus, PaymentStatus, UserRole
 
@@ -27,6 +27,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_active: bool
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PasswordUpdate(BaseModel):
@@ -63,6 +64,7 @@ class ProductResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductPagination(BaseModel):
@@ -92,6 +94,7 @@ class CartItemResponse(BaseModel):
     stock_quantity: int
     image_url: str | None = None
     quantity: int
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderResponse(BaseModel):
@@ -101,6 +104,7 @@ class OrderResponse(BaseModel):
     total_amount: Decimal
     payment_status: PaymentStatus
     created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderPagination(BaseModel):

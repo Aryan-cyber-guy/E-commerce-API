@@ -47,7 +47,6 @@ def get_all_products(
     total = query.count()
     total_pages = math.ceil(total / size) if total else 0
 
-    product_data = [ProductResponse.model_validate(product).model_dump(mode="json") for product in products]
     product_response_data = {
         "total": total,
         "page": page,
@@ -55,7 +54,7 @@ def get_all_products(
         "total_pages": total_pages,
         "has_previous": page > 1,
         "has_next": skip + size < total,
-        "products": product_data,
+        "products": products,
     }
 
     try:
@@ -82,14 +81,12 @@ def get_product(id: int, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    product_data = ProductResponse.model_validate(product).model_dump(mode="json")
-
     try:
-        redis_client.setex(cache_key, 300, json.dumps(product_data))
+        redis_client.setex(cache_key, 300, json.dumps(product))
     except RedisError:
         pass
 
-    return product_data
+    return product
 
 
 @router.post("/", response_model=ProductResponse)
