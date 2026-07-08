@@ -3,13 +3,13 @@
 import math
 
 from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.auth import admin_required, get_current_user
 from database import get_db
 from db_model import DbUsers, Orders
-from models import OrderPagination
+from models import OrderPagination, OrderDetailResponse
 
 router = APIRouter()
 
@@ -50,6 +50,24 @@ def get_user_orders(
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
+
+@router.get("/{id}", response_model=OrderDetailResponse)
+def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return one active order by id."""
+    order = (
+        db.query(Orders)
+        .options(selectinload(Orders.order_items))
+        .filter(
+            Orders.user_id == current_user.id,
+            Orders.id == id,
+        )
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    return order
 
 
 @router.get("/admin", response_model=OrderPagination)

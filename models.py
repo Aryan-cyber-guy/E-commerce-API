@@ -30,6 +30,16 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserPagination(BaseModel):
+    total: int
+    page: int
+    size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    users: List[UserResponse]
+
+
 class PasswordUpdate(BaseModel):
     current_password: str = Field(min_length=8, max_length=255)
     new_password: str = Field(min_length=8, max_length=255)
@@ -94,6 +104,28 @@ class CartItemResponse(BaseModel):
     stock_quantity: int
     image_url: str | None = None
     quantity: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderItemResponse(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    price_at_purchase: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrderDetailResponse(BaseModel):
+    id: int
+    user_id: int
+    status: OrderStatus
+    total_amount: Decimal
+    payment_status: PaymentStatus
+    created_at: datetime
+
+    order_items: list[OrderItemResponse]
+
     model_config = ConfigDict(from_attributes=True)
 
 

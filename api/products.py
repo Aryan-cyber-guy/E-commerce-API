@@ -27,7 +27,7 @@ def get_all_products(
     db: Session = Depends(get_db),
 ):
     """Return a paginated list of active products."""
-    cache_key = f"products:page={page}:size={size}:category={category}:search={search}"
+    cache_key = f"products:page={page}:size={size}:category={category}:search={search or ''}"
     try:
         cached = redis_client.get(cache_key)
     except RedisError:

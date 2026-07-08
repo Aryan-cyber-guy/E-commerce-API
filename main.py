@@ -5,12 +5,15 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
+import json
+import math
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from redis import RedisError
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -37,7 +40,7 @@ from db_model import (
     UserRole,
     Products
 )
-from models import PasswordUpdate, UserCreate, UserResponse, UserUpdate
+from models import PasswordUpdate, UserCreate, UserResponse, UserUpdate, UserPagination
 from redis_client import redis_client
 
 load_dotenv()
@@ -169,11 +172,10 @@ def read_current_user(current_user: DbUsers = Depends(get_current_user)):
 
 
 @app.post("/auth/login", response_model=UserResponse)
-async def login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Authenticate a user and set auth cookies."""
     email = form_data.username.strip().lower()
-    ip = request.client.host if request.client else "unknown"
-    key = f"login_attempts:{ip}:{email}"
+    key = f"login_attempts:{email}"
 
     try:
         attempts = redis_client.incr(key)
@@ -303,6 +305,57 @@ def logout(request: Request, response: Response):
     return {"message": "Logged out"}
 
 
+@app.get("/admin/users", response_model=UserPagination)
+def get_all_users(
+    search: str | None = None,
+    current_user: DbUsers = Depends(admin_required),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    cache_key = f"users:page={page}:size={size}:search={search or ''}"
+    try:
+        cached = redis_client.get(cache_key)
+    except RedisError:
+        cached = None
+
+    if cached:
+        return json.loads(cached)
+    
+    query = db.query(DbUsers)
+    if search:
+        query = query.filter(
+            or_(
+                DbUsers.name.ilike(f"%{search}%"),
+                DbUsers.email.ilike(f"%{search}%"),
+                DbUsers.id == int(search) if search.isdigit() else False
+            )
+        )
+
+    skip = (page - 1) * size
+    users = query.order_by(DbUsers.id).offset(skip).limit(size).all()
+    total = query.count()
+    total_pages = math.ceil(total / size) if total else 0
+
+    users_data = [UserResponse.model_validate(user, from_attributes=True).model_dump(mode="json") for user in users]
+    users_response_data = {
+        "total": total,
+        "page": page,
+        "size": size,
+        "total_pages": total_pages,
+        "has_previous": page > 1,
+        "has_next": skip + size < total,
+        "users": users_data,
+    }
+
+    try:
+        redis_client.setex(cache_key, 300, json.dumps(users_response_data))
+    except RedisError:
+        pass
+
+    return users_response_data
+
+
 @app.patch("/admin/users/{user_id}/status")
 def toggle_user_active(user_id: int, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
     """Enable or disable a user account."""
@@ -318,6 +371,13 @@ def toggle_user_active(user_id: int, current_user: DbUsers = Depends(admin_requi
     except SQLAlchemyError:
         db.rollback()
         raise
+
+    try:
+        keys = list(redis_client.scan_iter("users:*"))
+        if keys:
+            redis_client.delete(*keys)
+    except RedisError:
+        pass
 
     status = "enabled" if user.is_active else "disabled"
     return {"message": f"User {status}"}
@@ -370,6 +430,33 @@ def checkout(cart: Carts = Depends(get_current_cart), current_user: DbUsers = De
     return {"order_id": order.id, "total_amount": order.total_amount, "payment_status": order.payment_status}
 
 
+@app.get("/payments/pending")
+def pending_payment(current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+    payment = (
+        db.query(Payments)
+        .join(Orders)
+        .filter(
+            Orders.user_id == current_user.id,
+            Payments.status == PaymentStatus.PENDING
+        )
+        .order_by(Payments.created_at.desc())
+        .first()
+    )
+
+    if not payment:
+        return {
+            "has_pending_payment": False
+        }
+
+    return {
+        "has_pending_payment": True,
+        "payment_id": payment.id,
+        "order_id": payment.order_id,
+        "total_amount": payment.amount,
+        "status": payment.status
+    }
+
+
 @app.post("/payments/create-session/{order_id}")
 def create_payment(order_id: int, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
     """Create a mock payment session for an order."""
@@ -381,7 +468,13 @@ def create_payment(order_id: int, current_user: DbUsers = Depends(get_current_us
 
     existing = db.query(Payments).filter(Payments.order_id == order.id, Payments.status == PaymentStatus.PENDING).first()
     if existing:
-        return {"payment_id": existing.id}
+        return {
+            "payment_id": existing.id,
+            "order":{
+                "order_id": order.id,
+                "total_amount": order.total_amount
+            }
+        }
 
     payment = Payments(order=order, amount=order.total_amount)
     db.add(payment)
@@ -392,7 +485,13 @@ def create_payment(order_id: int, current_user: DbUsers = Depends(get_current_us
         db.rollback()
         raise
 
-    return {"payment_id": payment.id, "order_id": order.id}
+    return {
+        "payment_id": payment.id,
+        "order":{
+            "order_id": order.id,
+            "total_amount": order.total_amount
+        }
+    }
 
 
 @app.post("/payments/mock/{payment_id}/success")
