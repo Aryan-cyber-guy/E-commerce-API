@@ -65,11 +65,11 @@ class Products(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
-    description: Mapped[str] = mapped_column(String(1000))
+    description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     price: Mapped[Numeric] = mapped_column(Numeric(10, 2), nullable=False)
     category: Mapped[Category] = mapped_column(Enum(Category), nullable=False)
     stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    image_url: Mapped[str] = mapped_column(String(255))
+    image_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
