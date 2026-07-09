@@ -1,6 +1,6 @@
 # E-commerce API
 
-A production-ready RESTful backend for an e-commerce platform, built with **FastAPI**, **PostgreSQL**, and **Redis**. It powers **Nova Store**, providing authentication, product catalog management, cart operations, checkout, mock payments, order history, and admin controls.
+Feature-rich RESTful backend inspired by production practices for an e-commerce platform, built with **FastAPI**, **PostgreSQL**, and **Redis**. It powers **Nova Store**, providing authentication, product catalog management, cart operations, checkout, mock payments, order history, and admin controls.
 
 **Live API:** [e-commerce-api-production-98ad.up.railway.app](https://e-commerce-api-production-98ad.up.railway.app) \
 **Frontend (Nova Store):** [ecom-elevate-one.vercel.app](https://ecom-elevate-one.vercel.app/)
