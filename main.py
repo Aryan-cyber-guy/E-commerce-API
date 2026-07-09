@@ -80,7 +80,9 @@ app.add_middleware(
     allow_origins=[
     "http://127.0.0.1:5500",
     "http://localhost:5500",
-    "https://ecom-elevate-one.vercel.app"
+    "https://ecom-elevate-one.vercel.app",
+    "https://id-preview--90939a39-c048-4724-8355-649841adce46.lovable.app",
+    "https://ecom-elevate-git-main-xenos-projects-71c5e6e1.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -115,6 +117,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     new_user = DbUsers(email=email, password_hash=password_hashed)
 
     new_user.cart = Carts()
+    db.add(new_user)
     try:
         db.commit()
         db.refresh(new_user)
