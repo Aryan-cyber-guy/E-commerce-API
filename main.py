@@ -532,4 +532,17 @@ def final_payment(payment_id: int, cart: Carts = Depends(get_current_cart), curr
         db.rollback()
         raise
 
+    try:
+        # Remove cached product lists
+        keys = list(redis_client.scan_iter("products:page=*"))
+        if keys:
+            redis_client.delete(*keys)
+
+        # Remove cached product details
+        for item in order.order_items:
+            redis_client.delete(f"product:{item.product_id}")
+
+    except RedisError:
+        pass
+
     return {"message": "Payment completed successfully", "payment_id": payment.id, "order_id": order.id}
