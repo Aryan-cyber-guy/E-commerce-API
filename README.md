@@ -1,6 +1,17 @@
 # E-commerce API
 
-A production-ready RESTful backend for an e-commerce platform, built with **FastAPI**, **PostgreSQL**, and **Redis**. It powers **Nova Store**, providing authentication, product catalog management, cart operations, checkout, mock payments, order history, and admin controls.
+<badges here>
+
+![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.136-green?logo=fastapi)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue?logo=postgresql)
+![Redis](https://img.shields.io/badge/Redis-Cache-red?logo=redis)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker)
+![Pytest](https://img.shields.io/badge/Pytest-Testing-yellow?logo=pytest)
+![Railway](https://img.shields.io/badge/Deploy-Railway-purple?logo=railway)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+Feature-rich RESTful backend inspired by production practices for an e-commerce platform, built with **FastAPI**, **PostgreSQL**, and **Redis**. It powers **Nova Store**, providing authentication, product catalog management, cart operations, checkout, mock payments, order history, and admin controls.
 
 **Live API:** [e-commerce-api-production-98ad.up.railway.app](https://e-commerce-api-production-98ad.up.railway.app) \
 **Frontend (Nova Store):** [ecom-elevate-one.vercel.app](https://ecom-elevate-one.vercel.app/)
