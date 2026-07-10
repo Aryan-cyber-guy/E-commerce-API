@@ -76,6 +76,7 @@ def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Se
         db.query(Orders)
         .options(selectinload(Orders.order_items))
         .filter(
+            Orders.user_id == current_user.id,
             Orders.id == id,
         )
         .first()
