@@ -52,6 +52,23 @@ def get_user_orders(
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
+@router.get("/admin", response_model=OrderPagination)
+def get_all_orders(
+    current_user: DbUsers = Depends(admin_required),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Return all orders for administrators."""
+    try:
+        query = db.query(Orders)
+        return _build_order_pagination(query, page, size)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
+
 @router.get("/{id}", response_model=OrderDetailResponse)
 def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return one active order by id."""
@@ -68,20 +85,3 @@ def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Order not found")
 
     return order
-
-
-@router.get("/admin", response_model=OrderPagination)
-def get_all_orders(
-    current_user: DbUsers = Depends(admin_required),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
-    db: Session = Depends(get_db),
-):
-    """Return all orders for administrators."""
-    try:
-        query = db.query(Orders)
-        return _build_order_pagination(query, page, size)
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
