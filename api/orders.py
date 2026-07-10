@@ -85,3 +85,17 @@ def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Order not found")
 
     return order
+
+
+@router.get("/admin/{id}", response_model=OrderDetailResponse)
+def get_specific_order(id: int, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
+    order = (
+        db.query(Orders)
+        .options(selectinload(Orders.order_items))
+        .filter(Orders.id == id)
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return order
