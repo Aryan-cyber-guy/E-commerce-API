@@ -35,6 +35,7 @@ Base.metadata.create_all(bind=engine)
 # Fixtures
 # ---------------------------------------------------------------------
 
+
 @pytest.fixture
 def db():
     Base.metadata.drop_all(bind=engine)
@@ -105,6 +106,7 @@ def seed_data(db):
 # GET Cart
 # ---------------------------------------------------------------------
 
+
 def test_get_empty_cart(client, seed_data):
 
     response = client.get("/")
@@ -116,6 +118,7 @@ def test_get_empty_cart(client, seed_data):
 # ---------------------------------------------------------------------
 # Add Item
 # ---------------------------------------------------------------------
+
 
 def test_add_item(client, seed_data):
 
@@ -167,6 +170,7 @@ def test_add_more_than_stock(client, seed_data):
 # ---------------------------------------------------------------------
 # Update Item
 # ---------------------------------------------------------------------
+
 
 def test_update_cart_item(client, db, seed_data):
 
@@ -231,6 +235,7 @@ def test_update_more_than_stock(client, db, seed_data):
 # Delete Item
 # ---------------------------------------------------------------------
 
+
 def test_delete_cart_item(client, db, seed_data):
 
     item = CartItems(
@@ -260,6 +265,7 @@ def test_delete_invalid_item(client, seed_data):
 # ---------------------------------------------------------------------
 # Existing Item
 # ---------------------------------------------------------------------
+
 
 def test_add_existing_item_increases_quantity(client, db, seed_data):
 

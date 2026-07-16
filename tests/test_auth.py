@@ -15,10 +15,10 @@ from api.auth import (
 )
 from db_model import UserRole
 
-
 # -------------------------------------------------------------------
 # Password hashing
 # -------------------------------------------------------------------
+
 
 def test_hash_password_returns_different_string():
     password = "mypassword123"
@@ -46,6 +46,7 @@ def test_verify_password_failure():
 # Token creation
 # -------------------------------------------------------------------
 
+
 def test_create_access_token():
     token = create_access_token(5)
 
@@ -69,6 +70,7 @@ def test_create_refresh_token():
 # -------------------------------------------------------------------
 # verify_token
 # -------------------------------------------------------------------
+
 
 def test_verify_access_token():
     token = create_access_token(1)
@@ -131,6 +133,7 @@ def test_verify_blacklisted_refresh_token(monkeypatch):
 # -------------------------------------------------------------------
 # get_current_user
 # -------------------------------------------------------------------
+
 
 class FakeRequest:
     def __init__(self, token):
@@ -209,6 +212,7 @@ def test_get_current_user_disabled():
 # -------------------------------------------------------------------
 # admin_required
 # -------------------------------------------------------------------
+
 
 def test_admin_required_success():
     user = FakeUser()

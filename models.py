@@ -97,7 +97,7 @@ class CartItemUpdate(BaseModel):
 
 
 class CartItemResponse(BaseModel):
-    id:int
+    id: int
     product_id: int
     name: str
     price: Decimal

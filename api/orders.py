@@ -21,7 +21,10 @@ def _build_order_pagination(query, page: int, size: int) -> dict:
         orders = query.order_by(Orders.created_at.desc()).offset(skip).limit(size).all()
         total = query.count()
     except SQLAlchemyError:
-        raise HTTPException(status_code=500, detail="An error occurred while fetching data from the database.")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while fetching data from the database.",
+        )
     total_pages = math.ceil(total / size) if total else 0
 
     return {
@@ -70,7 +73,11 @@ def get_all_orders(
 
 
 @router.get("/{id}", response_model=OrderDetailResponse)
-def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_order(
+    id: int,
+    current_user: DbUsers = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Return one active order by id."""
     order = (
         db.query(Orders)
@@ -88,7 +95,11 @@ def get_order(id: int, current_user: DbUsers = Depends(get_current_user), db: Se
 
 
 @router.get("/admin/{id}", response_model=OrderDetailResponse)
-def get_specific_order(id: int, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
+def get_specific_order(
+    id: int,
+    current_user: DbUsers = Depends(admin_required),
+    db: Session = Depends(get_db),
+):
     order = (
         db.query(Orders)
         .options(selectinload(Orders.order_items))
@@ -97,5 +108,5 @@ def get_specific_order(id: int, current_user: DbUsers = Depends(admin_required),
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
+
     return order

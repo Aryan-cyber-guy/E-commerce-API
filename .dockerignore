@@ -19,3 +19,5 @@ venv/
 
 tests/
 test_cart.db
+
+.ruff_cache/

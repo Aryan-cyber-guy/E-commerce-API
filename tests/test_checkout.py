@@ -2,9 +2,8 @@
 # CHECKOUT
 # -------------------------------------------------------------
 
-import pytest
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.testclient import TestClient
 
@@ -49,7 +48,6 @@ def test_checkout_success(mock_db, current_user, cart):
     mock_db.commit.assert_called_once()
 
 
-
 def test_checkout_empty_cart(mock_db, current_user, cart):
     cart.cart_items = []
     mock_db.query.return_value.filter.return_value.first.return_value = None
@@ -62,7 +60,6 @@ def test_checkout_empty_cart(mock_db, current_user, cart):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Cart is empty"
-
 
 
 def test_checkout_insufficient_stock(mock_db, current_user, cart):
@@ -85,7 +82,6 @@ def test_checkout_insufficient_stock(mock_db, current_user, cart):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Insufficient stock"
-
 
 
 def test_checkout_pending_order_exists(mock_db, current_user, cart):
@@ -111,7 +107,6 @@ def test_checkout_pending_order_exists(mock_db, current_user, cart):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Complete your existing order first."
-
 
 
 def test_checkout_database_error(mock_db, current_user, cart):

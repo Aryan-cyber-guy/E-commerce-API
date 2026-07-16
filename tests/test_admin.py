@@ -20,7 +20,7 @@ client = TestClient(app)
 
 def test_toggle_user_status_success(mock_db, admin_user):
     target_user = MagicMock()
-    target_user.id = 2
+    target_user.id = 3
     target_user.is_active = True
 
     mock_db.query.return_value.filter.return_value.first.return_value = target_user
@@ -37,10 +37,9 @@ def test_toggle_user_status_success(mock_db, admin_user):
     mock_db.commit.assert_called_once()
 
 
-
 def test_toggle_user_status_enable(mock_db, admin_user):
     target_user = MagicMock()
-    target_user.id = 2
+    target_user.id = 3
     target_user.is_active = False
 
     mock_db.query.return_value.filter.return_value.first.return_value = target_user
@@ -55,7 +54,6 @@ def test_toggle_user_status_enable(mock_db, admin_user):
     assert target_user.is_active is True
 
 
-
 def test_toggle_user_status_user_not_found(mock_db, admin_user):
     mock_db.query.return_value.filter.return_value.first.return_value = None
 
@@ -66,7 +64,6 @@ def test_toggle_user_status_user_not_found(mock_db, admin_user):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "No user found"
-
 
 
 def test_toggle_user_status_self_disable(mock_db, admin_user):
@@ -81,10 +78,9 @@ def test_toggle_user_status_self_disable(mock_db, admin_user):
     assert response.json()["detail"] == "Cannot disable your own account"
 
 
-
 def test_toggle_user_status_database_error(mock_db, admin_user):
     target_user = MagicMock()
-    target_user.id = 2
+    target_user.id = 3
     target_user.is_active = True
 
     mock_db.query.return_value.filter.return_value.first.return_value = target_user

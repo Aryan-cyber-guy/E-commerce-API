@@ -13,6 +13,7 @@ client = TestClient(app, raise_server_exceptions=False)
 # LOGIN
 # -------------------------------------------------------------
 
+
 @patch("main.redis_client")
 @patch("main.create_refresh_token")
 @patch("main.create_access_token")
@@ -62,7 +63,6 @@ def test_login_success(
     mock_redis.delete.assert_called_once()
 
 
-
 @patch("main.redis_client")
 def test_login_invalid_email(mock_redis, mock_db):
 
@@ -82,7 +82,6 @@ def test_login_invalid_email(mock_redis, mock_db):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid credentials"
-
 
 
 @patch("main.redis_client")
@@ -107,7 +106,6 @@ def test_login_disabled_account(mock_redis, mock_db):
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Account disabled"
-
 
 
 @patch("main.redis_client")
@@ -138,7 +136,6 @@ def test_login_wrong_password(mock_verify, mock_redis, mock_db):
     assert response.json()["detail"] == "Invalid credentials"
 
 
-
 @patch("main.redis_client")
 def test_login_rate_limit(mock_redis, mock_db):
 
@@ -159,7 +156,6 @@ def test_login_rate_limit(mock_redis, mock_db):
     assert "Too many login attempts" in response.json()["detail"]
 
 
-
 @patch("main.redis_client")
 def test_login_redis_failure(mock_redis, mock_db):
 
@@ -177,9 +173,9 @@ def test_login_redis_failure(mock_redis, mock_db):
 
     mock_redis.incr.side_effect = RedisError()
 
-    with patch("main.verify_password", return_value=True), \
-         patch("main.create_access_token", return_value="access"), \
-         patch("main.create_refresh_token", return_value="refresh"):
+    with patch("main.verify_password", return_value=True), patch(
+        "main.create_access_token", return_value="access"
+    ), patch("main.create_refresh_token", return_value="refresh"):
 
         app.dependency_overrides[get_db] = override_get_db(mock_db)
 
@@ -194,11 +190,10 @@ def test_login_redis_failure(mock_redis, mock_db):
         assert response.status_code == 200
 
 
-
-
 # -------------------------------------------------------------
 # REFRESH TOKEN
 # -------------------------------------------------------------
+
 
 @patch("main.redis_client")
 @patch("main.create_refresh_token")
@@ -284,10 +279,10 @@ def test_refresh_redis_error(mock_verify, mock_redis, mock_db):
     assert response.status_code == 503
 
 
-
 # -------------------------------------------------------------
 # LOGOUT
 # -------------------------------------------------------------
+
 
 @patch("main.redis_client")
 @patch("main.verify_token")

@@ -38,7 +38,7 @@ from db_model import (
     PaymentStatus,
     Payments,
     UserRole,
-    Products
+    Products,
 )
 from models import PasswordUpdate, UserCreate, UserResponse, UserUpdate, UserPagination
 from redis_client import redis_client
@@ -47,6 +47,7 @@ load_dotenv()
 
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
 
 def seed_admin() -> None:
     """Create a default admin user when env vars are present."""
@@ -57,7 +58,11 @@ def seed_admin() -> None:
     try:
         admin = db.query(DbUsers).filter(DbUsers.email == ADMIN_EMAIL).first()
         if not admin:
-            admin = DbUsers(email=ADMIN_EMAIL, password_hash=hash_password(ADMIN_PASSWORD), role=UserRole.ADMIN)
+            admin = DbUsers(
+                email=ADMIN_EMAIL,
+                password_hash=hash_password(ADMIN_PASSWORD),
+                role=UserRole.ADMIN,
+            )
             admin.cart = Carts()
             db.add(admin)
             db.commit()
@@ -78,11 +83,11 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",
-    "https://ecom-elevate-one.vercel.app",
-    "https://id-preview--90939a39-c048-4724-8355-649841adce46.lovable.app",
-    "https://ecom-elevate-git-main-xenos-projects-71c5e6e1.vercel.app"
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "https://ecom-elevate-one.vercel.app",
+        "https://id-preview--90939a39-c048-4724-8355-649841adce46.lovable.app",
+        "https://ecom-elevate-git-main-xenos-projects-71c5e6e1.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -93,6 +98,7 @@ app.include_router(cart.router, prefix="/cart")
 app.include_router(products.router, prefix="/products")
 app.include_router(orders.router, prefix="/orders")
 
+
 @app.get("/")
 def check_up():
     """Health check endpoint."""
@@ -100,7 +106,7 @@ def check_up():
 
 
 @app.get("/health")
-def check_up():
+def health_check_up():
     """Health check endpoint."""
     return {"message": "Server is running"}
 
@@ -121,6 +127,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
         db.commit()
         db.refresh(new_user)
+        db.commit()
     except SQLAlchemyError:
         db.rollback()
         raise
@@ -129,14 +136,22 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @app.patch("/users/me", response_model=UserResponse)
-def update_user(data: UserUpdate, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_user(
+    data: UserUpdate,
+    current_user: DbUsers = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Update the current user's profile."""
     if data.name:
         current_user.name = data.name
 
     if data.email:
         email = data.email.strip().lower()
-        existing_user = db.query(DbUsers).filter(DbUsers.email == email, DbUsers.id != current_user.id).first()
+        existing_user = (
+            db.query(DbUsers)
+            .filter(DbUsers.email == email, DbUsers.id != current_user.id)
+            .first()
+        )
         if existing_user:
             raise HTTPException(status_code=400, detail="Email is already in use")
         current_user.email = email
@@ -152,7 +167,11 @@ def update_user(data: UserUpdate, current_user: DbUsers = Depends(get_current_us
 
 
 @app.patch("/users/me/password")
-def update_user_password(data: PasswordUpdate, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_user_password(
+    data: PasswordUpdate,
+    current_user: DbUsers = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Change the authenticated user's password."""
     if not verify_password(data.current_password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
@@ -175,7 +194,11 @@ def read_current_user(current_user: DbUsers = Depends(get_current_user)):
 
 
 @app.post("/auth/login", response_model=UserResponse)
-async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
     """Authenticate a user and set auth cookies."""
     email = form_data.username.strip().lower()
     key = f"login_attempts:{email}"
@@ -186,7 +209,10 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
             redis_client.expire(key, 60)
         if attempts > 10:
             ttl = max(redis_client.ttl(key), 0)
-            raise HTTPException(status_code=429, detail=f"Too many login attempts. Try again in {ttl} seconds.")
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many login attempts. Try again in {ttl} seconds.",
+            )
     except RedisError:
         pass
 
@@ -258,7 +284,9 @@ async def refresh(request: Request, response: Response, db: Session = Depends(ge
     try:
         redis_client.setex(key, remaining_time, "blacklisted")
     except RedisError as exc:
-        raise HTTPException(status_code=503, detail="Authentication service temporarily unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="Authentication service temporarily unavailable"
+        ) from exc
 
     new_access_token = create_access_token(user_id)
     new_refresh_token = create_refresh_token(user_id)
@@ -301,7 +329,9 @@ def logout(request: Request, response: Response):
             raise HTTPException(status_code=401, detail="Invalid token")
         redis_client.setex(key, remaining_time, "blacklisted")
     except RedisError as exc:
-        raise HTTPException(status_code=503, detail="Authentication service temporarily unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="Authentication service temporarily unavailable"
+        ) from exc
 
     response.delete_cookie("access_token", secure=True, samesite="None")
     response.delete_cookie("refresh_token", secure=True, samesite="None")
@@ -324,14 +354,14 @@ def get_all_users(
 
     if cached:
         return json.loads(cached)
-    
+
     query = db.query(DbUsers)
     if search:
         query = query.filter(
             or_(
                 DbUsers.name.ilike(f"%{search}%"),
                 DbUsers.email.ilike(f"%{search}%"),
-                DbUsers.id == int(search) if search.isdigit() else False
+                DbUsers.id == int(search) if search.isdigit() else False,
             )
         )
 
@@ -340,7 +370,10 @@ def get_all_users(
     total = query.count()
     total_pages = math.ceil(total / size) if total else 0
 
-    users_data = [UserResponse.model_validate(user, from_attributes=True).model_dump(mode="json") for user in users]
+    users_data = [
+        UserResponse.model_validate(user, from_attributes=True).model_dump(mode="json")
+        for user in users
+    ]
     users_response_data = {
         "total": total,
         "page": page,
@@ -360,7 +393,11 @@ def get_all_users(
 
 
 @app.patch("/admin/users/{user_id}/status")
-def toggle_user_active(user_id: int, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
+def toggle_user_active(
+    user_id: int,
+    current_user: DbUsers = Depends(admin_required),
+    db: Session = Depends(get_db),
+):
     """Enable or disable a user account."""
     user = db.query(DbUsers).filter(DbUsers.id == user_id).first()
     if not user:
@@ -387,7 +424,11 @@ def toggle_user_active(user_id: int, current_user: DbUsers = Depends(admin_requi
 
 
 @app.post("/checkout")
-def checkout(cart: Carts = Depends(get_current_cart), current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def checkout(
+    cart: Carts = Depends(get_current_cart),
+    current_user: DbUsers = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Create an order from the current cart."""
     cart_items = cart.cart_items
     if not cart_items:
@@ -402,11 +443,16 @@ def checkout(cart: Carts = Depends(get_current_cart), current_user: DbUsers = De
 
     pending_order = (
         db.query(Orders)
-        .filter(Orders.user_id == current_user.id, Orders.payment_status == PaymentStatus.PENDING)
+        .filter(
+            Orders.user_id == current_user.id,
+            Orders.payment_status == PaymentStatus.PENDING,
+        )
         .first()
     )
     if pending_order:
-        raise HTTPException(status_code=400, detail="Complete your existing order first.")
+        raise HTTPException(
+            status_code=400, detail="Complete your existing order first."
+        )
 
     order = Orders(user=current_user, total_amount=total)
     db.add(order)
@@ -430,53 +476,65 @@ def checkout(cart: Carts = Depends(get_current_cart), current_user: DbUsers = De
         db.rollback()
         raise
 
-    return {"order_id": order.id, "total_amount": order.total_amount, "payment_status": order.payment_status}
+    return {
+        "order_id": order.id,
+        "total_amount": order.total_amount,
+        "payment_status": order.payment_status,
+    }
 
 
 @app.get("/payments/pending")
-def pending_payment(current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def pending_payment(
+    current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)
+):
     payment = (
         db.query(Payments)
         .join(Orders)
         .filter(
-            Orders.user_id == current_user.id,
-            Payments.status == PaymentStatus.PENDING
+            Orders.user_id == current_user.id, Payments.status == PaymentStatus.PENDING
         )
         .order_by(Payments.created_at.desc())
         .first()
     )
 
     if not payment:
-        return {
-            "has_pending_payment": False
-        }
+        return {"has_pending_payment": False}
 
     return {
         "has_pending_payment": True,
         "payment_id": payment.id,
         "order_id": payment.order_id,
         "total_amount": payment.amount,
-        "status": payment.status
+        "status": payment.status,
     }
 
 
 @app.post("/payments/create-session/{order_id}")
-def create_payment(order_id: int, current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_payment(
+    order_id: int,
+    current_user: DbUsers = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Create a mock payment session for an order."""
-    order = db.query(Orders).filter(Orders.id == order_id, Orders.user_id == current_user.id).first()
+    order = (
+        db.query(Orders)
+        .filter(Orders.id == order_id, Orders.user_id == current_user.id)
+        .first()
+    )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     if order.payment_status != PaymentStatus.PENDING:
         raise HTTPException(status_code=400, detail="No pending order")
 
-    existing = db.query(Payments).filter(Payments.order_id == order.id, Payments.status == PaymentStatus.PENDING).first()
+    existing = (
+        db.query(Payments)
+        .filter(Payments.order_id == order.id, Payments.status == PaymentStatus.PENDING)
+        .first()
+    )
     if existing:
         return {
             "payment_id": existing.id,
-            "order":{
-                "order_id": order.id,
-                "total_amount": order.total_amount
-            }
+            "order": {"order_id": order.id, "total_amount": order.total_amount},
         }
 
     payment = Payments(order=order, amount=order.total_amount)
@@ -490,17 +548,21 @@ def create_payment(order_id: int, current_user: DbUsers = Depends(get_current_us
 
     return {
         "payment_id": payment.id,
-        "order":{
-            "order_id": order.id,
-            "total_amount": order.total_amount
-        }
+        "order": {"order_id": order.id, "total_amount": order.total_amount},
     }
 
 
 @app.post("/payments/mock/{payment_id}/success")
-def final_payment(payment_id: int, cart: Carts = Depends(get_current_cart), current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)):
+def final_payment(
+    payment_id: int,
+    cart: Carts = Depends(get_current_cart),
+    current_user: DbUsers = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Mark a mock payment as successful and update stock."""
-    payment = db.query(Payments).filter(Payments.id == payment_id).with_for_update().first()
+    payment = (
+        db.query(Payments).filter(Payments.id == payment_id).with_for_update().first()
+    )
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
@@ -511,10 +573,17 @@ def final_payment(payment_id: int, cart: Carts = Depends(get_current_cart), curr
         raise HTTPException(status_code=400, detail="Payment already processed")
 
     for item in order.order_items:
-        product = db.query(Products).filter(Products.id == item.product_id).with_for_update().first()
+        product = (
+            db.query(Products)
+            .filter(Products.id == item.product_id)
+            .with_for_update()
+            .first()
+        )
 
         if product.stock_quantity < item.quantity:
-            raise HTTPException(status_code=400, detail=f"{product.name} is out of stock.")
+            raise HTTPException(
+                status_code=400, detail=f"{product.name} is out of stock."
+            )
 
         product.stock_quantity -= item.quantity
 
@@ -522,7 +591,6 @@ def final_payment(payment_id: int, cart: Carts = Depends(get_current_cart), curr
     payment.paid_at = datetime.now(timezone.utc)
     order.payment_status = PaymentStatus.PAID
     order.status = OrderStatus.PROCESSING
-
 
     cart.cart_items.clear()
 
@@ -545,4 +613,8 @@ def final_payment(payment_id: int, cart: Carts = Depends(get_current_cart), curr
     except RedisError:
         pass
 
-    return {"message": "Payment completed successfully", "payment_id": payment.id, "order_id": order.id}
+    return {
+        "message": "Payment completed successfully",
+        "payment_id": payment.id,
+        "order_id": order.id,
+    }

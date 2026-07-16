@@ -12,7 +12,9 @@ from models import CartItemAdd, CartItemResponse, CartItemUpdate
 router = APIRouter()
 
 
-def get_current_cart(current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)) -> Carts:
+def get_current_cart(
+    current_user: DbUsers = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Carts:
     """Fetch the authenticated user's cart or raise a 404."""
     cart = current_user.cart
     if not cart:
@@ -29,13 +31,15 @@ def get_current_cart(current_user: DbUsers = Depends(get_current_user), db: Sess
 
 
 @router.get("/", response_model=list[CartItemResponse])
-def get_cart_items(cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)):
+def get_cart_items(
+    cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)
+):
     """Return the current cart contents."""
     cart_items = cart.cart_items
 
     return [
         {
-            "id":cart_item.id,
+            "id": cart_item.id,
             "product_id": cart_item.product.id,
             "name": cart_item.product.name,
             "price": cart_item.product.price,
@@ -48,7 +52,11 @@ def get_cart_items(cart: Carts = Depends(get_current_cart), db: Session = Depend
 
 
 @router.post("/items")
-def add_item_to_cart(cart_item: CartItemAdd, cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)):
+def add_item_to_cart(
+    cart_item: CartItemAdd,
+    cart: Carts = Depends(get_current_cart),
+    db: Session = Depends(get_db),
+):
     """Add a product to the current cart."""
     product = db.query(Products).filter(Products.id == cart_item.product_id).first()
     if not product:
@@ -56,7 +64,9 @@ def add_item_to_cart(cart_item: CartItemAdd, cart: Carts = Depends(get_current_c
 
     existing_item = (
         db.query(CartItems)
-        .filter(CartItems.cart_id == cart.id, CartItems.product_id == cart_item.product_id)
+        .filter(
+            CartItems.cart_id == cart.id, CartItems.product_id == cart_item.product_id
+        )
         .first()
     )
 
@@ -68,7 +78,11 @@ def add_item_to_cart(cart_item: CartItemAdd, cart: Carts = Depends(get_current_c
     elif cart_item.quantity > product.stock_quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
     else:
-        cart_entry = CartItems(cart_id=cart.id, product_id=cart_item.product_id, quantity=cart_item.quantity)
+        cart_entry = CartItems(
+            cart_id=cart.id,
+            product_id=cart_item.product_id,
+            quantity=cart_item.quantity,
+        )
         db.add(cart_entry)
 
     try:
@@ -92,9 +106,18 @@ def add_item_to_cart(cart_item: CartItemAdd, cart: Carts = Depends(get_current_c
 
 
 @router.patch("/items/{id}")
-def update_cart_item(id: int, quantity: CartItemUpdate, cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)):
+def update_cart_item(
+    id: int,
+    quantity: CartItemUpdate,
+    cart: Carts = Depends(get_current_cart),
+    db: Session = Depends(get_db),
+):
     """Update the quantity of a cart item."""
-    cart_item = db.query(CartItems).filter(CartItems.cart_id == cart.id, CartItems.id == id).first()
+    cart_item = (
+        db.query(CartItems)
+        .filter(CartItems.cart_id == cart.id, CartItems.id == id)
+        .first()
+    )
     if not cart_item:
         raise HTTPException(status_code=404, detail="Item not found")
 
@@ -119,9 +142,15 @@ def update_cart_item(id: int, quantity: CartItemUpdate, cart: Carts = Depends(ge
 
 
 @router.delete("/items/{id}")
-def delete_cart_item(id: int, cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)):
+def delete_cart_item(
+    id: int, cart: Carts = Depends(get_current_cart), db: Session = Depends(get_db)
+):
     """Remove an item from the cart."""
-    cart_item = db.query(CartItems).filter(CartItems.cart_id == cart.id, CartItems.id == id).first()
+    cart_item = (
+        db.query(CartItems)
+        .filter(CartItems.cart_id == cart.id, CartItems.id == id)
+        .first()
+    )
     if not cart_item:
         raise HTTPException(status_code=404, detail="Item not found")
 

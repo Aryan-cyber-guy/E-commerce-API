@@ -1,10 +1,10 @@
 # test_orders.py
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
 from sqlalchemy.exc import SQLAlchemyError
+from types import SimpleNamespace
 from datetime import datetime
 from decimal import Decimal
 from db_model import OrderStatus, PaymentStatus
@@ -13,7 +13,6 @@ from api.orders import router
 from api.auth import get_current_user, admin_required
 from database import get_db
 from tests.conftest import override_get_db
-
 
 # ------------------------------------------------------------------
 # App setup
@@ -31,6 +30,7 @@ client = TestClient(app)
 # ------------------------------------------------------------------
 # User Orders
 # ------------------------------------------------------------------
+
 
 def test_get_user_orders_success(mock_db, current_user):
     fake_orders = [
@@ -55,7 +55,9 @@ def test_get_user_orders_success(mock_db, current_user):
     query = MagicMock()
     mock_db.query.return_value.filter.return_value = query
 
-    query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = fake_orders
+    query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+        fake_orders
+    )
     query.count.return_value = 2
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
@@ -75,12 +77,13 @@ def test_get_user_orders_success(mock_db, current_user):
     assert data["has_next"] is False
 
 
-
 def test_get_user_orders_empty(mock_db, current_user):
     query = MagicMock()
     mock_db.query.return_value.filter.return_value = query
 
-    query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
+    query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+        []
+    )
     query.count.return_value = 0
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
@@ -97,7 +100,6 @@ def test_get_user_orders_empty(mock_db, current_user):
     assert data["total_pages"] == 0
 
 
-
 def test_get_user_orders_database_error(mock_db, current_user):
     query = MagicMock()
     mock_db.query.return_value.filter.return_value = query
@@ -110,8 +112,10 @@ def test_get_user_orders_database_error(mock_db, current_user):
     response = client.get("/")
 
     assert response.status_code == 500
-    assert response.json()["detail"] == "An error occurred while fetching data from the database."
-
+    assert (
+        response.json()["detail"]
+        == "An error occurred while fetching data from the database."
+    )
 
 
 def test_get_user_orders_unexpected_error(mock_db, current_user):
@@ -126,18 +130,45 @@ def test_get_user_orders_unexpected_error(mock_db, current_user):
     assert response.json()["detail"] == "An unexpected error occurred."
 
 
-
 # ------------------------------------------------------------------
 # Admin Orders
 # ------------------------------------------------------------------
 
+
 def test_get_all_orders_success(mock_db, admin_user):
-    fake_orders = [MagicMock(), MagicMock(), MagicMock()]
+    fake_orders = [
+        SimpleNamespace(
+            id=1,
+            user_id=admin_user.id,
+            status=OrderStatus.PENDING,
+            total_amount=Decimal("10.00"),
+            payment_status=PaymentStatus.PENDING,
+            created_at=datetime.utcnow(),
+        ),
+        SimpleNamespace(
+            id=2,
+            user_id=admin_user.id,
+            status=OrderStatus.PROCESSING,
+            total_amount=Decimal("15.00"),
+            payment_status=PaymentStatus.PAID,
+            created_at=datetime.utcnow(),
+        ),
+        SimpleNamespace(
+            id=3,
+            user_id=admin_user.id,
+            status=OrderStatus.SHIPPED,
+            total_amount=Decimal("20.00"),
+            payment_status=PaymentStatus.PAID,
+            created_at=datetime.utcnow(),
+        ),
+    ]
 
     query = MagicMock()
     mock_db.query.return_value = query
 
-    query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = fake_orders
+    query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+        fake_orders
+    )
     query.count.return_value = 3
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
@@ -155,7 +186,6 @@ def test_get_all_orders_success(mock_db, admin_user):
     assert data["total_pages"] == 1
 
 
-
 def test_get_all_orders_database_error(mock_db, admin_user):
     query = MagicMock()
     mock_db.query.return_value = query
@@ -168,8 +198,10 @@ def test_get_all_orders_database_error(mock_db, admin_user):
     response = client.get("/admin")
 
     assert response.status_code == 500
-    assert response.json()["detail"] == "An error occurred while fetching data from the database."
-
+    assert (
+        response.json()["detail"]
+        == "An error occurred while fetching data from the database."
+    )
 
 
 def test_get_all_orders_unexpected_error(mock_db, admin_user):

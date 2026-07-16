@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from db_model import UserRole
 from main import app
 
+
 # Shared mock DB fixture
 @pytest.fixture
 def mock_db():
@@ -13,6 +14,7 @@ def mock_db():
 def override_get_db(mock_db):
     def _override():
         yield mock_db
+
     return _override
 
 

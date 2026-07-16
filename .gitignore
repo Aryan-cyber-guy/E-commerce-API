@@ -17,3 +17,5 @@ venv/
 !.env.example
 
 test_cart.db
+
+.ruff_cache/

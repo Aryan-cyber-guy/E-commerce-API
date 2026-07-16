@@ -15,6 +15,7 @@ from tests.conftest import override_get_db
 
 client = TestClient(app)
 
+
 def test_create_payment_success(mock_db, current_user):
     order = MagicMock()
     order.id = 1
@@ -22,8 +23,8 @@ def test_create_payment_success(mock_db, current_user):
     order.payment_status = PaymentStatus.PENDING
 
     mock_db.query.return_value.filter.return_value.first.side_effect = [
-        order,      # order lookup
-        None        # existing payment lookup
+        order,  # order lookup
+        None,  # existing payment lookup
     ]
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
@@ -37,7 +38,6 @@ def test_create_payment_success(mock_db, current_user):
     mock_db.commit.assert_called_once()
 
 
-
 def test_create_payment_order_not_found(mock_db, current_user):
     mock_db.query.return_value.filter.return_value.first.return_value = None
 
@@ -48,7 +48,6 @@ def test_create_payment_order_not_found(mock_db, current_user):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found"
-
 
 
 def test_create_payment_no_pending_order(mock_db, current_user):
@@ -64,7 +63,6 @@ def test_create_payment_no_pending_order(mock_db, current_user):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "No pending order"
-
 
 
 def test_create_payment_existing_payment(mock_db, current_user):
@@ -89,7 +87,6 @@ def test_create_payment_existing_payment(mock_db, current_user):
     assert response.json()["payment_id"] == 15
 
 
-
 def test_create_payment_database_error(mock_db, current_user):
     order = MagicMock()
     order.id = 1
@@ -110,7 +107,6 @@ def test_create_payment_database_error(mock_db, current_user):
         client.post("/payments/create-session/1")
 
     mock_db.rollback.assert_called_once()
-
 
 
 # -------------------------------------------------------------
@@ -157,9 +153,10 @@ def test_payment_success(mock_db, current_user, cart):
     mock_db.commit.assert_called_once()
 
 
-
 def test_payment_not_found(mock_db, current_user, cart):
-    mock_db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = None
+    mock_db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = (
+        None
+    )
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
     app.dependency_overrides[get_current_user] = lambda: current_user
@@ -171,12 +168,13 @@ def test_payment_not_found(mock_db, current_user, cart):
     assert response.json()["detail"] == "Payment not found"
 
 
-
 def test_payment_order_not_found(mock_db, current_user, cart):
     payment = MagicMock()
     payment.order = None
 
-    mock_db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = payment
+    mock_db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = (
+        payment
+    )
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
     app.dependency_overrides[get_current_user] = lambda: current_user
@@ -188,13 +186,14 @@ def test_payment_order_not_found(mock_db, current_user, cart):
     assert response.json()["detail"] == "Order not found"
 
 
-
 def test_payment_already_processed(mock_db, current_user, cart):
     payment = MagicMock()
     payment.status = PaymentStatus.PAID
     payment.order = MagicMock(user_id=current_user.id)
 
-    mock_db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = payment
+    mock_db.query.return_value.filter.return_value.with_for_update.return_value.first.return_value = (
+        payment
+    )
 
     app.dependency_overrides[get_db] = override_get_db(mock_db)
     app.dependency_overrides[get_current_user] = lambda: current_user
@@ -204,7 +203,6 @@ def test_payment_already_processed(mock_db, current_user, cart):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Payment already processed"
-
 
 
 def test_payment_out_of_stock(mock_db, current_user, cart):
@@ -238,7 +236,6 @@ def test_payment_out_of_stock(mock_db, current_user, cart):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Laptop is out of stock."
-
 
 
 def test_payment_database_error(mock_db, current_user, cart):

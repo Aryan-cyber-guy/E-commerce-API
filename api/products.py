@@ -27,7 +27,9 @@ def get_all_products(
     db: Session = Depends(get_db),
 ):
     """Return a paginated list of active products."""
-    cache_key = f"products:page={page}:size={size}:category={category}:search={search or ''}"
+    cache_key = (
+        f"products:page={page}:size={size}:category={category}:search={search or ''}"
+    )
     try:
         cached = redis_client.get(cache_key)
     except RedisError:
@@ -40,14 +42,24 @@ def get_all_products(
     if category:
         query = query.filter(Products.category == category)
     if search:
-        query = query.filter(or_(Products.name.ilike(f"%{search}%"), Products.description.ilike(f"%{search}%")))
+        query = query.filter(
+            or_(
+                Products.name.ilike(f"%{search}%"),
+                Products.description.ilike(f"%{search}%"),
+            )
+        )
 
     skip = (page - 1) * size
     products = query.order_by(Products.id).offset(skip).limit(size).all()
     total = query.count()
     total_pages = math.ceil(total / size) if total else 0
 
-    product_data = [ProductResponse.model_validate(product, from_attributes=True).model_dump(mode="json") for product in products]
+    product_data = [
+        ProductResponse.model_validate(product, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for product in products
+    ]
     product_response_data = {
         "total": total,
         "page": page,
@@ -78,11 +90,17 @@ def get_product(id: int, db: Session = Depends(get_db)):
     if cached:
         return json.loads(cached)
 
-    product = db.query(Products).filter(Products.is_active.is_(True), Products.id == id).first()
+    product = (
+        db.query(Products)
+        .filter(Products.is_active.is_(True), Products.id == id)
+        .first()
+    )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    product_data = ProductResponse.model_validate(product, from_attributes=True).model_dump(mode="json")
+    product_data = ProductResponse.model_validate(
+        product, from_attributes=True
+    ).model_dump(mode="json")
 
     try:
         redis_client.setex(cache_key, 300, json.dumps(product_data))
@@ -93,7 +111,11 @@ def get_product(id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=ProductResponse)
-def add_product(product: ProductCreate, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
+def add_product(
+    product: ProductCreate,
+    current_user: DbUsers = Depends(admin_required),
+    db: Session = Depends(get_db),
+):
     """Create a new product."""
     new_product = Products(**product.model_dump())
     db.add(new_product)
@@ -115,7 +137,12 @@ def add_product(product: ProductCreate, current_user: DbUsers = Depends(admin_re
 
 
 @router.patch("/{id}", response_model=ProductResponse)
-def update_product(id: int, product: ProductUpdate, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
+def update_product(
+    id: int,
+    product: ProductUpdate,
+    current_user: DbUsers = Depends(admin_required),
+    db: Session = Depends(get_db),
+):
     """Update a product by id."""
     db_product = db.query(Products).filter(Products.id == id).first()
     if not db_product:
@@ -143,7 +170,11 @@ def update_product(id: int, product: ProductUpdate, current_user: DbUsers = Depe
 
 
 @router.delete("/{id}")
-def delete_product(id: int, current_user: DbUsers = Depends(admin_required), db: Session = Depends(get_db)):
+def delete_product(
+    id: int,
+    current_user: DbUsers = Depends(admin_required),
+    db: Session = Depends(get_db),
+):
     """Soft-delete a product."""
     product = db.query(Products).filter(Products.id == id).first()
     if not product:
