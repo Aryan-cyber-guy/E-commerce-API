@@ -56,4 +56,4 @@ jobs:
             
             # 8. Run tests
             - name: Run tests
-              run: pytest
+              run: python -m pytest
