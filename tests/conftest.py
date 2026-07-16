@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from datetime import datetime, timezone
 from db_model import UserRole
 from main import app
+from fastapi.testclient import TestClient
 
 
 # Shared mock DB fixture
@@ -58,3 +59,7 @@ def cart():
 def clear_dependency_overrides():
     yield
     app.dependency_overrides.clear()
+
+@pytest.fixture
+def client():
+    return TestClient(app, raise_server_exceptions=False)
