@@ -60,6 +60,7 @@ def clear_dependency_overrides():
     yield
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
 def client():
     return TestClient(app, raise_server_exceptions=False)
