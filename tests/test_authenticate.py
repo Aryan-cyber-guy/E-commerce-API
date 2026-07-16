@@ -221,6 +221,8 @@ def test_refresh_success(
     mock_access.return_value = "new_access"
     mock_refresh.return_value = "new_refresh"
 
+    app.dependency_overrides[get_db] = override_get_db(mock_db)
+
     response = client.post(
         "/auth/refresh",
         cookies={"refresh_token": "token"},
